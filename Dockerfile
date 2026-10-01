@@ -21,16 +21,20 @@ RUN uv sync --frozen --no-dev
 
 FROM python:$PYTHON_VERSION-slim-bookworm
 
-COPY --from=builder /build /code
-WORKDIR /code
-
-ENV PATH="/code/.venv/bin:$PATH"
-
+# نصب ابزارهای پایه و Bun
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    unzip \
     && update-ca-certificates \
+    && curl -fsSL https://bun.sh/install | bash \
     && rm -rf /var/lib/apt/lists/*
+
+ENV BUN_INSTALL="/root/.bun"
+ENV PATH="/root/.bun/bin:/code/.venv/bin:$PATH"
+
+COPY --from=builder /build /code
+WORKDIR /code
 
 COPY cli_wrapper.sh /usr/bin/pasarguard-cli
 RUN chmod +x /usr/bin/pasarguard-cli
