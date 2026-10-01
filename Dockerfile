@@ -12,13 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /build
-RUN --mount=type=cache,id=uv-cache-1,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
-ADD . /build
-RUN --mount=type=cache,id=uv-cache-2,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+COPY uv.lock pyproject.toml /build/
+RUN uv sync --frozen --no-install-project --no-dev
+
+COPY . /build
+RUN uv sync --frozen --no-dev
 
 
 FROM python:$PYTHON_VERSION-slim-bookworm
@@ -28,8 +26,6 @@ WORKDIR /code
 
 ENV PATH="/code/.venv/bin:$PATH"
 
-# Keep the runtime trust store explicit. Outbound notification clients use it
-# without replacing Python's process-wide SSLContext.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -42,7 +38,6 @@ RUN chmod +x /usr/bin/pasarguard-cli
 COPY tui_wrapper.sh /usr/bin/pasarguard-tui
 RUN chmod +x /usr/bin/pasarguard-tui
 
-# Copy healthcheck script
 COPY healthcheck.sh /code/healthcheck.sh
 RUN chmod +x /code/healthcheck.sh
 
